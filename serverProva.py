@@ -4,15 +4,16 @@ import psutil
 from threading import Thread
 from opcua import ua, Server
 from math import sin
+import threading
 
 sys.path.insert(0, "..")
 
 
-# TODO: mettere il thread per l'aggiornamento delle variabili
-# TODO: mettere i lock sulle variabili
+# COMPLETED: mettere il thread per l'aggiornamento delle variabili
+# COMPLETED: mettere i lock sulle variabili
 # TODO: esporre i GPIO del raspberry PI
 # TODO: esporre metodo per far blinkare un LED
-# TODO: creare i certificati
+# COMPLETED: creare i certificati
 
 
 class SinUpdater(Thread):
@@ -32,6 +33,9 @@ class SinUpdater(Thread):
 
 
 if __name__ == "__main__":
+    
+    lock = threading.RLock()
+
     server = Server()
     server.set_endpoint("opc.tcp://0.0.0.0:4840/freeopcua/server/")
 
@@ -62,12 +66,14 @@ if __name__ == "__main__":
     vup = SinUpdater(sinFunc)
     vup.start()
     
-    try:
+    try: #TODO: mettere questa pappardella in una funzione a parte che estende Thread (come il SinUpdater)
         while True:
             time.sleep(1)
             tFile = open('/sys/class/thermal/thermal_zone0/temp')
-            temp = (float(tFile.read()))1000
-            core0temp.set_value(temp)
+            temp = (float(tFile.read()))/1000
+            #lockare
+            with lock:
+                core0temp.set_value(temp)
             #core1temp.set_value(psutil.sensors_temperatures()['coretemp'][2].current)
     finally:
         # close connection, remove subcsriptions, etc
