@@ -8,7 +8,7 @@ GPIO.output(7,True) ## Turn on GPIO pin 7
 import RPi.GPIO as GPIO ## Import GPIO library
 import time ## Import 'time' library. Allows us to use 'sleep'
 
-GPIO.setmode(GPIO.BOARD) ## Use board pin numbering
+GPIO.setmode(GPIO.BCM) ## Use board pin numbering
 GPIO.setup(7, GPIO.OUT) ## Setup GPIO Pin 7 to OUT
 
 ##Define a function named Blink()
