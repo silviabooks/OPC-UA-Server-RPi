@@ -8,12 +8,12 @@ import RPi.GPIO as GPIO
 
 @uamethod
 def BlinkLed(parent, numTimes, speed):
-    blinkLed = BlinkLed(numTimes, speed)
+    blinkLed = Blink(numTimes, speed)
     blinkLed.start()
     return
 
 
-class BlinkLed(Thread):
+class Blink(Thread):
     def __init__(self, numTimes, speed):
         Thread.__init__(self)
         self._stop = False
