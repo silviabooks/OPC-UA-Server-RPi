@@ -1,6 +1,4 @@
-import sys
 import time
-# import psutil
 from threading import Thread
 from opcua import ua, uamethod, Server
 from math import sin
@@ -8,23 +6,35 @@ import threading
 import RPi.GPIO as GPIO
 
 
-# COMPLETED: mettere il thread per l'aggiornamento delle variabili
-# COMPLETED: mettere i lock sulle variabili
-# TODO: esporre i GPIO del raspberry PI
-# COMPLETED: esporre metodo per far blinkare un LED
-# COMPLETED: creare i certificati
-
 @uamethod
 def BlinkLed(parent, numTimes, speed):
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(7, GPIO.OUT)
-    for i in range(0,numTimes):
-        GPIO.output(7,True) # Switch on pin 7
-        time.sleep(speed)
-        GPIO.output(7,False) # Switch off pin 7
-        time.sleep(speed)
-    GPIO.cleanup()
+    blinkLed = BlinkLed(numTimes, speed)
+    blinkLed.start()
     return
+
+
+class BlinkLed(Thread):
+    def __init__(self, numTimes, speed):
+        Thread.__init__(self)
+        self._stop = False
+        self.numTimes = numTimes
+        self.speed = speed
+
+    def stop(self):
+        self._stop = True
+
+    def run(self):
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(7, GPIO.OUT)
+        for i in range(0, self.numTimes):
+            # Switch on pin 7
+            GPIO.output(7, True)
+            time.sleep(self.speed)
+            # Switch off pin 7
+            GPIO.output(7, False)
+            time.sleep(self.speed)
+        GPIO.cleanup()
+        self.stop()
 
 
 class SinUpdater(Thread):
@@ -57,14 +67,12 @@ class CoreUpdater(Thread):
             time.sleep(1)
             tFile = open('/sys/class/thermal/thermal_zone0/temp')
             temp = (float(tFile.read())) / 1000
-            # lockare
+            # Lock to set the variable
             with lock:
                 self.var.set_value(temp)
             tFile.close()
 
 
-# if __name__ == "__main__":
-    
 lock = threading.RLock()
 
 server = Server()
@@ -75,9 +83,10 @@ server.set_endpoint("opc.tcp://0.0.0.0:4840/freeopcua/server/")
 # Load public key
 #server.load_certificate("myCertificate.der")
 
+# Security level of server
 server.set_security_policy([ua.SecurityPolicyType.NoSecurity,
                             ua.SecurityPolicyType.Basic128Rsa15_SignAndEncrypt,
-                            ua.SecurityPolicyType.Basic128Rsa15_Sign]) #Security level of server
+                            ua.SecurityPolicyType.Basic128Rsa15_Sign])
 
 uri = "silvia-notebook.opcua.it/freeopcua/server"
 idx = server.register_namespace(uri)
@@ -91,7 +100,7 @@ myObj.add_method(idx, "BlinkLed", BlinkLed, [ua.VariantType.Int64, ua.VariantTyp
 
 core0temp.set_writable()
 
-# starting!
+# Start Server
 server.start()
 
 sinUp = SinUpdater(sinFunc)
@@ -104,4 +113,3 @@ input("Press Enter to stop the server")
 sinUp.stop()
 coreUp.stop()
 server.stop()
-
