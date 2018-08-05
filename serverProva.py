@@ -1,4 +1,5 @@
 import time
+import dht11
 from threading import Thread
 from opcua import ua, uamethod, Server
 from math import sin
@@ -35,6 +36,38 @@ class Blink(Thread):
             time.sleep(self.speed)
         GPIO.cleanup()
         self.stop()
+
+
+@uamethod
+def ReadHumidityTemperature(parent):
+    tempHum = []
+    readHumTemp = Read(tempHum)
+    readHumTemp.start()
+    time.sleep(0.5)
+    return (tempHum[0], tempHum[1])
+
+
+class Read(Thread):
+    def __init__(self, tempHum):
+        Thread.__init__(self)
+        self._stop = False
+        self.tempHum = tempHum
+
+    def stop(self):
+        self._stop = True
+
+    def run(self):
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BCM)
+        instance = dht11.DHT11(pin=18)
+        result = instance.read()
+        GPIO.cleanup()
+        if result.is_valid():
+            self.tempHum.append(result.temperature)
+            self.tempHum.append(result.humidity)
+        else:
+            self.tempHum.append(0)
+            self.tempHum.append(0)
 
 
 class SinUpdater(Thread):
@@ -79,14 +112,16 @@ server = Server()
 server.set_endpoint("opc.tcp://0.0.0.0:4840/freeopcua/server/")
 
 # Load private key
-#server.load_private_key("myPrivateKey.pem")
+server.load_private_key("myPrivateKey.pem")
 # Load public key
-#server.load_certificate("myCertificate.der")
+server.load_certificate("myCertificate.der")
 
 # Security level of server
 server.set_security_policy([ua.SecurityPolicyType.NoSecurity,
-                            ua.SecurityPolicyType.Basic128Rsa15_SignAndEncrypt,
-                            ua.SecurityPolicyType.Basic128Rsa15_Sign])
+                ua.SecurityPolicyType.Basic128Rsa15_SignAndEncrypt,
+                ua.SecurityPolicyType.Basic128Rsa15_Sign,
+                ua.SecurityPolicyType.Basic256_SignAndEncrypt,
+                ua.SecurityPolicyType.Basic256_Sign])
 
 uri = "silvia-notebook.opcua.it/freeopcua/server"
 idx = server.register_namespace(uri)
@@ -97,6 +132,21 @@ myObj = objects.add_object(idx, "MyObject")
 sinFunc = myObj.add_variable(idx, "MySin", 0, ua.VariantType.Float)
 core0temp = myObj.add_variable(idx, "Core0Temperature", 0)
 myObj.add_method(idx, "BlinkLed", BlinkLed, [ua.VariantType.Int64, ua.VariantType.Int64], [])
+
+temp = ua.Argument()
+temp.Name = "Temperature"
+temp.DataType = ua.NodeId(ua.ObjectIds.Int64)
+temp.ValueRank = -1
+temp.ArrayDimensions = []
+temp.Description = ua.LocalizedText("Output of sensor")
+hum = ua.Argument()
+hum.Name = "Humidity"
+hum.DataType = ua.NodeId(ua.ObjectIds.Int64)
+hum.ValueRank = -1
+hum.ArrayDimensions = []
+hum.Description = ua.LocalizedText("Output of sensor")
+
+myObj.add_method(idx, "ReadHumidityTemperature", ReadHumidityTemperature, [], [temp, hum])
 
 core0temp.set_writable()
 
