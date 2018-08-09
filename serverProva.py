@@ -44,6 +44,9 @@ def ReadHumidityTemperature(parent):
     readHumTemp = Read(tempHum)
     readHumTemp.start()
     time.sleep(0.5)
+    # mmm credo che in questo caso il fatto di chiamare un thread non 
+    # sussiste, perchè se dobbiamo ricevere questi valori è inutile lanciare un thread e aspettarlo.
+    # Si fa tutto in questo metodo e sticazzi 
     return (tempHum[0], tempHum[1])
 
 
