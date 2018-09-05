@@ -44,9 +44,8 @@ def ReadHumidityTemperature(parent):
     readHumTemp = Read(tempHum)
     readHumTemp.start()
     time.sleep(0.5)
-    # mmm credo che in questo caso il fatto di chiamare un thread non 
-    # sussiste, perchè se dobbiamo ricevere questi valori è inutile lanciare un thread e aspettarlo.
-    # Si fa tutto in questo metodo e sticazzi 
+    sensorTemp.set_value(tempHum[0])
+    sensorHum.set_value(tempHum[1])
     return (tempHum[0], tempHum[1])
 
 
@@ -134,6 +133,8 @@ objects = server.get_objects_node()
 myObj = objects.add_object(idx, "MyObject")
 sinFunc = myObj.add_variable(idx, "MySin", 0, ua.VariantType.Float)
 core0temp = myObj.add_variable(idx, "Core0Temperature", 0)
+sensorTemp = myObj.add_variable(idx, "SensorTemperature", 0)
+sensorHum = myObj.add_variable(idx, "SensorHumidity", 0)
 myObj.add_method(idx, "BlinkLed", BlinkLed, [ua.VariantType.Int64, ua.VariantType.Int64], [])
 
 temp = ua.Argument()
@@ -152,6 +153,8 @@ hum.Description = ua.LocalizedText("Output of sensor")
 myObj.add_method(idx, "ReadHumidityTemperature", ReadHumidityTemperature, [], [temp, hum])
 
 core0temp.set_writable()
+sensorTemp.set_writable()
+sensorHum.set_writable()
 
 # Start Server
 server.start()
