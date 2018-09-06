@@ -50,10 +50,11 @@ class Blink(Thread):
 
 
 class SensorUpdater(Thread):
-    def __init__(self, tempHum):
+    def __init__(self, temp, hum):
         Thread.__init__(self)
         self._stop = False
-        #self.tempHum = tempHum
+        self.temp = temp
+        self.hum = hum
 
     def stop(self):
         self._stop = True
@@ -66,11 +67,11 @@ class SensorUpdater(Thread):
             result = instance.read()
             with lock:
                 if result.is_valid():
-                    sensorTemp.set_value(result.temperature)
-                    sensorHum.set_value(result.humidity)
+                    self.temp.set_value(result.temperature)
+                    self.hum.set_value(result.humidity)
                 else:
-                    sensorTemp.set_value(0)
-                    sensorHum.set_value(0)
+                    self.temp.set_value(0)
+                    self.hum.set_value(0)
             time.sleep(0.5)
 
 #    def run(self):
@@ -165,7 +166,7 @@ hum.ValueRank = -1
 hum.ArrayDimensions = []
 hum.Description = ua.LocalizedText("Output of sensor")
 
-myObj.add_method(idx, "ReadHumidityTemperature", ReadHumidityTemperature, [], [temp, hum])
+#myObj.add_method(idx, "ReadHumidityTemperature", ReadHumidityTemperature, [], [temp, hum])
 
 core0temp.set_writable()
 sensorTemp.set_writable()
@@ -178,11 +179,12 @@ sinUp = SinUpdater(sinFunc)
 sinUp.start()
 coreUp = CoreUpdater(core0temp)
 coreUp.start()
-sensorUp = SensorUpdater()
+sensorUp = SensorUpdater(sensorTemp, sensorHum)
 sersorUp.start()
 
 input("Press Enter to stop the server")
 
 sinUp.stop()
 coreUp.stop()
+sensorUp.stop()
 server.stop()
