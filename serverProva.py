@@ -38,22 +38,22 @@ class Blink(Thread):
         self.stop()
 
 
-@uamethod
-def ReadHumidityTemperature(parent):
-    tempHum = []
-    readHumTemp = Read(tempHum)
-    readHumTemp.start()
-    time.sleep(0.5)
-    sensorTemp.set_value(tempHum[0])
-    sensorHum.set_value(tempHum[1])
-    return (tempHum[0], tempHum[1])
+#@uamethod
+#def ReadHumidityTemperature(parent):
+#    tempHum = []
+#    readHumTemp = Read(tempHum)
+#    readHumTemp.start()
+#    time.sleep(0.5)
+#    sensorTemp.set_value(tempHum[0])
+#    sensorHum.set_value(tempHum[1])
+#    return (tempHum[0], tempHum[1])
 
 
-class Read(Thread):
+class SensorUpdater(Thread):
     def __init__(self, tempHum):
         Thread.__init__(self)
         self._stop = False
-        self.tempHum = tempHum
+        #self.tempHum = tempHum
 
     def stop(self):
         self._stop = True
@@ -62,14 +62,29 @@ class Read(Thread):
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
         instance = dht11.DHT11(pin=18)
-        result = instance.read()
-        GPIO.cleanup()
-        if result.is_valid():
-            self.tempHum.append(result.temperature)
-            self.tempHum.append(result.humidity)
-        else:
-            self.tempHum.append(0)
-            self.tempHum.append(0)
+        while not self._stop:
+            result = instance.read()
+            with lock:
+                if result.is_valid():
+                    sensorTemp.set_value(result.temperature)
+                    sensorHum.set_value(result.humidity)
+                else:
+                    sensorTemp.set_value(0)
+                    sensorHum.set_value(0)
+            time.sleep(0.5)
+
+#    def run(self):
+#        GPIO.setwarnings(False)
+#        GPIO.setmode(GPIO.BCM)
+#        instance = dht11.DHT11(pin=18)
+#        result = instance.read()
+#        GPIO.cleanup()
+#        if result.is_valid():
+#            self.tempHum.append(result.temperature)
+#            self.tempHum.append(result.humidity)
+#        else:
+#            self.tempHum.append(0)
+#            self.tempHum.append(0)
 
 
 class SinUpdater(Thread):
@@ -130,8 +145,8 @@ idx = server.register_namespace(uri)
 
 objects = server.get_objects_node()
 
-myObj = objects.add_object(idx, "MyObject")
-sinFunc = myObj.add_variable(idx, "MySin", 0, ua.VariantType.Float)
+myObj = objects.add_object(idx, "RaspberryPi")
+sinFunc = myObj.add_variable(idx, "SinExample", 0, ua.VariantType.Float)
 core0temp = myObj.add_variable(idx, "Core0Temperature", 0)
 sensorTemp = myObj.add_variable(idx, "SensorTemperature", 0)
 sensorHum = myObj.add_variable(idx, "SensorHumidity", 0)
@@ -163,6 +178,8 @@ sinUp = SinUpdater(sinFunc)
 sinUp.start()
 coreUp = CoreUpdater(core0temp)
 coreUp.start()
+sensorUp = SensorUpdater()
+sersorUp.start()
 
 input("Press Enter to stop the server")
 
