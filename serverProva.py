@@ -38,15 +38,13 @@ class Blink(Thread):
         self.stop()
 
 
-#@uamethod
-#def ReadHumidityTemperature(parent):
-#    tempHum = []
-#    readHumTemp = Read(tempHum)
-#    readHumTemp.start()
-#    time.sleep(0.5)
-#    sensorTemp.set_value(tempHum[0])
-#    sensorHum.set_value(tempHum[1])
-#    return (tempHum[0], tempHum[1])
+@uamethod
+def ReadHumidityTemperature(parent):
+    vector = []
+    with lock:
+        vector[0] = sensorTemp.get_value()
+        vector[1] = sensorHum.get_value()
+    return vector[0], vector[1]
 
 
 class SensorUpdater(Thread):
@@ -73,19 +71,6 @@ class SensorUpdater(Thread):
                     self.temp.set_value(0)
                     self.hum.set_value(0)
             time.sleep(0.5)
-
-#    def run(self):
-#        GPIO.setwarnings(False)
-#        GPIO.setmode(GPIO.BCM)
-#        instance = dht11.DHT11(pin=18)
-#        result = instance.read()
-#        GPIO.cleanup()
-#        if result.is_valid():
-#            self.tempHum.append(result.temperature)
-#            self.tempHum.append(result.humidity)
-#        else:
-#            self.tempHum.append(0)
-#            self.tempHum.append(0)
 
 
 class SinUpdater(Thread):
@@ -166,7 +151,7 @@ hum.ValueRank = -1
 hum.ArrayDimensions = []
 hum.Description = ua.LocalizedText("Output of sensor")
 
-#myObj.add_method(idx, "ReadHumidityTemperature", ReadHumidityTemperature, [], [temp, hum])
+myObj.add_method(idx, "ReadHumidityTemperature", ReadHumidityTemperature, [], [temp, hum])
 
 core0temp.set_writable()
 sensorTemp.set_writable()
@@ -180,7 +165,7 @@ sinUp.start()
 coreUp = CoreUpdater(core0temp)
 coreUp.start()
 sensorUp = SensorUpdater(sensorTemp, sensorHum)
-sersorUp.start()
+sensorUp.start()
 
 input("Press Enter to stop the server")
 
