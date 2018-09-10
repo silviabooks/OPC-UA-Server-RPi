@@ -85,7 +85,8 @@ class SinUpdater(Thread):
     def run(self):
         while not self._stop:
             v = sin(time.time() / 10)
-            self.var.set_value(v)
+            with lock:
+                self.var.set_value(v)
             time.sleep(0.1)
 
 
