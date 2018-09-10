@@ -154,10 +154,6 @@ hum.Description = ua.LocalizedText("Output of sensor")
 
 myObj.add_method(idx, "ReadHumidityTemperature", ReadHumidityTemperature, [], [temp, hum])
 
-core0temp.set_writable()
-sensorTemp.set_writable()
-sensorHum.set_writable()
-
 # Start Server
 server.start()
 
