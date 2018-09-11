@@ -40,11 +40,10 @@ class Blink(Thread):
 
 @uamethod
 def ReadHumidityTemperature(parent):
-    vector = []
     with lock:
-        vector[0] = sensorTemp.get_value()
-        vector[1] = sensorHum.get_value()
-    return vector[0], vector[1]
+        temp = sensorTemp.get_value()
+        hum = sensorHum.get_value()
+    return temp, hum
 
 
 class SensorUpdater(Thread):
@@ -63,6 +62,7 @@ class SensorUpdater(Thread):
         instance = dht11.DHT11(pin=18)
         while not self._stop:
             result = instance.read()
+            #lock to set the variable
             with lock:
                 if result.is_valid():
                     self.temp.set_value(result.temperature)
@@ -133,11 +133,14 @@ idx = server.register_namespace(uri)
 objects = server.get_objects_node()
 
 myObj = objects.add_object(idx, "RaspberryPi")
+editableVar = myObj.add_variable(idx, "ModifyMe", 1, ua.VariantType.Int64)
 sinFunc = myObj.add_variable(idx, "SinExample", 0, ua.VariantType.Float)
 core0temp = myObj.add_variable(idx, "Core0Temperature", 0)
 sensorTemp = myObj.add_variable(idx, "SensorTemperature", 0)
 sensorHum = myObj.add_variable(idx, "SensorHumidity", 0)
 myObj.add_method(idx, "BlinkLed", BlinkLed, [ua.VariantType.Int64, ua.VariantType.Int64], [])
+
+editableVar.set_writable()
 
 temp = ua.Argument()
 temp.Name = "Temperature"
