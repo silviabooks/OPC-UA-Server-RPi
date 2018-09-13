@@ -157,6 +157,8 @@ hum.Description = ua.LocalizedText("Output of sensor")
 
 myObj.add_method(idx, "ReadHumidityTemperature", ReadHumidityTemperature, [], [temp, hum])
 
+
+
 # Start Server
 server.start()
 
@@ -169,6 +171,9 @@ sensorUp.start()
 
 input("Press Enter to stop the server")
 
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(7, GPIO.OUT)
+GPIO.output(7, False)
 sinUp.stop()
 coreUp.stop()
 sensorUp.stop()
